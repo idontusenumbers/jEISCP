@@ -15,26 +15,24 @@ import org.yaml.snakeyaml.Yaml;
 /**
  * parses the YAML-file of git-project
  * miracle2k-onkyo-eiscp
- * 
- * @see https://github.com/miracle2k/onkyo-eiscp
- * 
- * @author marcelpokrandt
  *
+ * @author marcelpokrandt
+ * @see https://github.com/miracle2k/onkyo-eiscp
  */
 public class EiscpCommandsParser {
 	private static final String YAML_MODELS = "models";
 	private static final String YAML_DESCRIPTION = "description";
 	private static final String YAML_NAME = "name";
 	private static final String YAML_VALUES = "values";
-
+	
 	private static final String EISCP_COMMANDS_YAML = "miracle2k-onkyo-eiscp/eiscp-commands.yaml";
-
+	
 	private static final Logger log = LoggerFactory.getLogger(EiscpCommandsParser.class);
-
+	
 	private static Map<String, List<String>> modelsets = null;
 	private static Map<String, Object> ec = null;
 	
-	private static List<CommandBlock> mainCommandBlocks = null;
+	private static Map<String, List<CommandBlock>> commandBlocks = new HashMap<>();
 	private static Map<String, Command> idToCommandMap = null;
 	private static Map<String, CommandBlock> idToCommandBlockMap = null;
 	private static Map<String, Command> iscpToCommandMap = null;
@@ -43,7 +41,6 @@ public class EiscpCommandsParser {
 	private static Map<String, List<String>> keysetForModel = new HashMap<String, List<String>>();
 	
 	
-
 	public static Map<String, Command> getIscpToCommandMap() {
 		if (iscpToCommandMap == null) {
 			HashMap<String, Command> map = new HashMap<String, Command>();
@@ -56,6 +53,7 @@ public class EiscpCommandsParser {
 		}
 		return iscpToCommandMap;
 	}
+	
 	public static Map<String, Command> getIdToCommandMap() {
 		if (idToCommandMap == null) {
 			idToCommandMap = new HashMap<String, Command>();
@@ -91,8 +89,12 @@ public class EiscpCommandsParser {
 	}
 	
 	public static List<CommandBlock> getMainCommandBlocks() {
-		if (mainCommandBlocks == null) {
-			Map<String, Object> main = (Map<String, Object>) getEiscpCommands().get("main");
+		return getCommandBlocks("main");
+	}
+	
+	public static List<CommandBlock> getCommandBlocks(String setName) {
+		if (!commandBlocks.containsKey(setName)) {
+			Map<String, Object> main = (Map<String, Object>) getEiscpCommands().get(setName);
 			
 			List<CommandBlock> mc = new LinkedList<CommandBlock>();
 			for (String mainCommand : main.keySet()) {
@@ -102,7 +104,7 @@ public class EiscpCommandsParser {
 				cmdBlock.setCommand(mainCommand);
 				Object yamlNameValue = cmdMap.get(YAML_NAME);
 				if (yamlNameValue instanceof ArrayList) {
-					yamlNameValue = ((ArrayList) yamlNameValue).get(0);	// choose first
+					yamlNameValue = ((ArrayList) yamlNameValue).get(0);    // choose first
 				}
 				cmdBlock.setName((String) yamlNameValue);
 				cmdBlock.setDescription((String) cmdMap.get(YAML_DESCRIPTION));
@@ -127,13 +129,13 @@ public class EiscpCommandsParser {
 						} else {
 							name = (String) ((ArrayList) nameO).get(0);
 						}
-						subC.setName( name );
+						subC.setName(name);
 						
 						subC.setDescription((String) subcommandO.get(YAML_DESCRIPTION));
 						subC.setModels((String) subcommandO.get(YAML_MODELS));
 						
 						cmdBlock.getValues().add(subC);
-						// log.info("   " + subC); 
+						// log.info("   " + subC);
 					} else {
 						if (log.isDebugEnabled())
 							log.debug("subCommandKey unhandeled: " + subCommandKeyO.getClass().getName() + " - " + subCommandKeyO + " for " + cmdBlock);
@@ -142,9 +144,9 @@ public class EiscpCommandsParser {
 				
 			}
 			
-			mainCommandBlocks = mc;
+			commandBlocks.put(setName, mc);
 		}
-		return mainCommandBlocks;
+		return commandBlocks.get(setName);
 	}
 	
 	public static Map<String, Object> getEiscpCommands() {
@@ -162,7 +164,7 @@ public class EiscpCommandsParser {
 		if (modelsets == null) {
 			Map<String, List<String>> yamlModelsets = (Map<String, List<String>>) getEiscpCommands().get("modelsets");
 			log.debug("loaded " + yamlModelsets.size() + " modelsets");
-
+			
 			// rework loaded modelset
 			for (String setId : yamlModelsets.keySet()) {
 				List<String> modelset = yamlModelsets.get(setId);
@@ -173,7 +175,7 @@ public class EiscpCommandsParser {
 					int cDelim = model.indexOf("(");
 					if (cDelim != -1) {
 						String derivedModelName = model.substring(0, cDelim);
-						if (! modelset.contains(derivedModelName)) {
+						if (!modelset.contains(derivedModelName)) {
 							log.debug("assign " + model + " as equal to " + derivedModelName);
 							reworkedModelset.add(derivedModelName);
 						}
@@ -190,7 +192,7 @@ public class EiscpCommandsParser {
 	}
 	
 	public static List<String> getKeysetForModel(String model) {
-		if (! keysetForModel.containsKey(model)) {
+		if (!keysetForModel.containsKey(model)) {
 			log.debug("build keyset for model " + model);
 			
 			List<String> keysetList = new LinkedList<String>();

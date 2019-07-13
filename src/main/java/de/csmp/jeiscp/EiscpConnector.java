@@ -23,7 +23,8 @@ import org.slf4j.LoggerFactory;
  */
 public class EiscpConnector {
 	private static final Logger log = LoggerFactory.getLogger(EiscpConnector.class);
-
+	private EiscpDevice device;
+	
 	
 	Socket socket;
 	BufferedOutputStream socketOut;
@@ -88,6 +89,7 @@ public class EiscpConnector {
 	public EiscpConnector(String address, String autodiscoverResponse) throws UnknownHostException, IOException {
 		// TODO parse
 		log.debug("autodiscovered: " + autodiscoverResponse);
+		this.device = new EiscpDevice(autodiscoverResponse);
 		init(address, DEFAULT_EISCP_PORT);
 	}
 	
@@ -121,6 +123,10 @@ public class EiscpConnector {
 		socketIn = new BufferedInputStream(socket.getInputStream());
 		
 		log.debug("connected");
+	}
+	
+	public EiscpDevice getDevice() {
+		return device;
 	}
 	
 	@Override
